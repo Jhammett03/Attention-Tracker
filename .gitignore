@@ -1,0 +1,17 @@
+videos/
+frames/
+frames_annotated/
+*.npz
+*.npy
+*.task
+*.pt
+*.pth
+*.mp4
+*.avi
+*.mov
+__pycache__/
+*.pyc
+venv/
+.env/
+.DS_Store
+videos.zip
