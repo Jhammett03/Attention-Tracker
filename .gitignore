@@ -1,6 +1,7 @@
 videos/
 frames/
 frames_annotated/
+*.csv
 *.npz
 *.npy
 *.task
@@ -15,3 +16,4 @@ venv/
 .env/
 .DS_Store
 videos.zip
+dataset.csv

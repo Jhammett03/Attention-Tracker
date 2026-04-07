@@ -132,7 +132,7 @@ def train_one_fold(X_train, y_train, X_test, y_test, device):
 def main():
     device = torch.device("cpu")
 
-    data = np.load("sequence_dataset.npz", allow_pickle=True)
+    data = np.load("sequence_dataset_iris.npz", allow_pickle=True)
     X = data["X"].astype(np.float32)  # (N, 30, 6)
     y = data["y"]
 
