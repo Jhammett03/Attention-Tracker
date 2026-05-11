@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score, f1_score
 
 # linear regression using the time series data from each frame individually
 def main():
-    data = np.load("sequence_dataset.npz", allow_pickle=True)
+    data = np.load("sequence_dataset_iris.npz", allow_pickle=True)
     X = data["X"] # shape (N, 30, 6) where N is #videos, 30 timesteps per video, 6 featurs per frame (left_ear, right_ear, left_x, left_y, right_x, right_y)
     y = data["y"]
 
