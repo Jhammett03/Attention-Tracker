@@ -77,15 +77,6 @@ def normalized_iris_position(eye_pts, iris_ctr):
     return (iris_ctr[0] - x_min) / eye_w, (iris_ctr[1] - y_min) / eye_h
 
 
-def gaze_unit_vector(eye_pts, iris_ctr):
-    anchor = np.array([np.mean(eye_pts[:, 0]), np.mean(eye_pts[:, 1])], dtype=np.float32)
-    vec = np.array(iris_ctr, dtype=np.float32) - anchor
-    mag = np.linalg.norm(vec)
-    if mag < 1e-6:
-        return 0.0, 0.0
-    return float(vec[0] / mag), float(vec[1] / mag)
-
-
 def build_face_frame(face):
     pts = np.array([(lm.x, lm.y, lm.z) for lm in face], dtype=np.float32)
 

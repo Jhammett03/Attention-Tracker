@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -104,7 +106,6 @@ def train_one_fold(X_train, y_train, X_test, y_test, device):
 
 
 def build_predictor(npz_path, epochs=50):
-    """Train on all data and return (model, scaler, le, device) ready for inference."""
     device = torch.device("cpu")
 
     data = np.load(npz_path, allow_pickle=True)
@@ -139,7 +140,6 @@ def build_predictor(npz_path, epochs=50):
 
 
 def save_model(npz_path="sequence_dataset_gaze.npz", output="transformer_model.pt"):
-    """Train on all data and save to disk for use in realtime.py."""
     model, scaler, le, _ = build_predictor(npz_path)
     torch.save({
         "model_state": model.state_dict(),
@@ -152,7 +152,6 @@ def save_model(npz_path="sequence_dataset_gaze.npz", output="transformer_model.p
 
 
 def main():
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--save", action="store_true", help="train on all data and save model")
     parser.add_argument("--npz", default="sequence_dataset_gaze.npz")

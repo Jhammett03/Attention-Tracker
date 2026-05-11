@@ -15,11 +15,10 @@ GAZE_ARROW_SCALE = 2.5
 
 
 def draw_annotation(frame, w, h, R, left_iris_face, right_iris_face, left_iris_pts, right_iris_pts):
-    # iris rim dots
     for pt in np.vstack([left_iris_pts, right_iris_pts]):
         cv2.circle(frame, (int(pt[0]), int(pt[1])), 2, (0, 200, 0), -1)
 
-    # average both iris positions in face frame — symmetric ±0.5 offsets cancel, leaving gaze deviation
+    # symmetric ±0.5 offsets cancel when averaged, leaving gaze deviation
     avg_face = (left_iris_face + right_iris_face) / 2.0
     gaze_face_3d = np.array([avg_face[0], avg_face[1], 0.0], dtype=np.float32)
 

@@ -2,7 +2,6 @@ import os
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.linear_model import LogisticRegression

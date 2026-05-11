@@ -36,7 +36,7 @@ def train_one_fold(X_train, y_train, X_val, y_val, device):
     patience = 15
     patience_counter = 0
 
-    for epoch in range(1000):
+    for _ in range(1000):
         model.train()
         optimizer.zero_grad()
         loss = criterion(model(X_train), y_train)
@@ -59,7 +59,6 @@ def train_one_fold(X_train, y_train, X_val, y_val, device):
 
 
 def build_predictor(npz_path="sequence_dataset_gaze.npz"):
-    """Train on all data and return (model, scaler, le, device) ready for inference."""
     data = np.load(npz_path, allow_pickle=True)
     X = data["X"].astype(np.float32)
     y_raw = data["y"]

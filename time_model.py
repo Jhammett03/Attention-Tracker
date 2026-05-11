@@ -5,16 +5,13 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
 
-# linear regression using the time series data from each frame individually
 def main():
     data = np.load("sequence_dataset_iris.npz", allow_pickle=True)
-    X = data["X"] # shape (N, 30, 6) where N is #videos, 30 timesteps per video, 6 featurs per frame (left_ear, right_ear, left_x, left_y, right_x, right_y)
+    X = data["X"]
     y = data["y"]
 
     N = X.shape[0]
-
-    # flatten time dimension
-    X = X.reshape(N, -1)   # (N, 180)
+    X = X.reshape(N, -1)
 
     le = LabelEncoder()
     y_enc = le.fit_transform(y)

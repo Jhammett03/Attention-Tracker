@@ -2,13 +2,13 @@
 
 A machine learning system that classifies human attention states (**focused** vs. **distracted**) using facial landmark analysis and temporal modeling.
 
-This senior project explores how visual attention signals—such as eye aspect ratio, gaze position, and head movement patterns—can be leveraged to detect cognitive focus through video analysis.
+This senior project explores how visual attention signals — eye aspect ratio, gaze direction in the face frame, head orientation, and face bounding-box position — can be used to detect cognitive focus from video.
 
 ---
 
 ## Overview
 
-This project processes video recordings of individuals to extract facial landmarks, then trains multiple classification models to predict attention state. The system uses MediaPipe for facial feature extraction and implements several machine learning approaches ranging from classical logistic regression to deep learning architectures.
+The project processes labeled video recordings, extracts facial landmarks with MediaPipe, and trains several classifiers to predict attention state. It includes a real-time webcam mode that runs the trained models on a live stream.
 
 ### Why This Matters
 
@@ -26,17 +26,19 @@ Attention detection has practical applications in:
 ```
 Video Input
     ↓
-Frame Extraction (3 fps, 10 seconds)
+Frame Extraction (15 fps, 10 seconds → 150 frames)
     ↓
-Facial Landmark Detection (MediaPipe)
+Facial Landmark Detection (MediaPipe, 478 landmarks)
     ↓
-Feature Engineering (EAR, eye centers, variance metrics)
+Feature Engineering (EAR, gaze in face frame, head z-axis, face bbox)
     ↓
 Dataset Generation (temporal sequences + aggregated features)
     ↓
-Model Training (Logistic Regression / CNN / Transformer)
+Model Training (Logistic Regression / Temporal CNN / Transformer)
     ↓
 Classification (focused / distracted)
+    ↓
+Real-time Inference (live webcam)
 ```
 
 ---
@@ -45,28 +47,23 @@ Classification (focused / distracted)
 
 ### Core Capabilities
 
-- **Video Processing**: Extracts frames at 3 fps for 10-second duration windows
-- **Facial Landmark Extraction**: Uses MediaPipe Face Landmarker to detect 478 facial landmarks
-- **Feature Engineering**: Computes Eye Aspect Ratio (EAR) and spatial variance metrics
-- **Dual Dataset Generation**:
-  - **Temporal sequences** (NPZ): 30 timesteps × 6 features per video
-  - **Aggregated features** (CSV): Mean/std/variance statistics per video
-- **Multiple Model Architectures**: Baseline, temporal, CNN, and transformer-based approaches
-- **Cross-Validation**: 5-fold stratified cross-validation for robust evaluation
+- **Video Processing**: 15 fps over 10 seconds (150 frames per clip)
+- **Facial Landmark Extraction**: MediaPipe Face Landmarker (478 landmarks including iris)
+- **Feature Engineering**: EAR, iris position projected into a face-aligned reference frame, head z-axis, and face bounding-box corners
+- **Three Dataset Variants** (each as both temporal NPZ and aggregated CSV):
+  - `dataset.csv` / `sequence_dataset.npz` — 6 per-frame features (EAR + raw eye centers)
+  - `dataset_iris.csv` / `sequence_dataset_iris.npz` — 6 per-frame features (EAR + normalized iris position)
+  - `dataset_gaze.csv` / `sequence_dataset_gaze.npz` — 16 per-frame features (EAR + face-frame gaze + head + bbox)
+- **Multiple Models**: Logistic regression (aggregated + flattened), 1D temporal CNN, transformer encoder
+- **Real-time Inference**: Live webcam mode with on-the-fly model switching
+- **Cross-Validation**: 5-fold stratified for single-run evaluation; multi-seed benchmarking script
 
-### Extracted Features
+### Per-Frame Features (gaze variant, 16 dims)
 
-**Per-Frame Features (6 dimensions)**:
-- `left_ear`: Eye Aspect Ratio for left eye (measures eye openness)
-- `right_ear`: Eye Aspect Ratio for right eye
-- `left_center_x`, `left_center_y`: Spatial coordinates of left eye center
-- `right_center_x`, `right_center_y`: Spatial coordinates of right eye center
-
-**Aggregated Features (8 dimensions)**:
-- `mean_left_ear`, `mean_right_ear`: Average eye openness over video
-- `std_left_ear`, `std_right_ear`: Variability in eye openness
-- `left_x_variance`, `left_y_variance`: Spatial variance of left eye position
-- `right_x_variance`, `right_y_variance`: Spatial variance of right eye position
+- `left_ear`, `right_ear` — eye aspect ratio (eye openness)
+- `left_gaze_x/y`, `right_gaze_x/y` — iris position in face-aligned 2D frame
+- `head_x`, `head_y` — face z-axis projected to image plane (head pose proxy)
+- Four face bounding-box corners (x, y each)
 
 ---
 
@@ -74,21 +71,27 @@ Classification (focused / distracted)
 
 ```
 .
-├── frame_extraction.py       # Video processing and feature extraction pipeline
-├── baseline_model.py         # Logistic regression on aggregated features (CSV)
-├── time_model.py            # Logistic regression on flattened temporal sequences
-├── cnn_time_model.py        # 1D CNN for temporal pattern recognition
-├── transformer_model.py     # Transformer with positional encoding
-├── requirements.txt         # Python dependencies
-├── dataset.csv             # Aggregated features per video (generated)
-├── sequence_dataset.npz    # Temporal sequences (N, 30, 6) (generated)
-├── face_landmarker.task    # MediaPipe model weights (required)
-└── videos/                 # Video dataset (download separately)
+├── frame_extraction.py       # Video → landmarks → features (all dataset variants)
+├── annotate_frames.py        # Debug tool: draw gaze arrows on extracted frames
+├── baseline_model.py         # Logistic regression on aggregated CSV features
+├── time_model.py             # Logistic regression on flattened temporal sequences
+├── cnn_time_model.py         # 1D temporal CNN
+├── transformer_model.py      # Transformer encoder with positional encoding
+├── benchmark.py              # Multi-seed comparison across models × datasets
+├── realtime.py               # Live webcam inference (switch models with Tab)
+├── requirements.txt
+├── face_landmarker.task      # MediaPipe model weights (required)
+├── dataset*.csv              # Aggregated features (generated)
+├── sequence_dataset*.npz     # Temporal sequences (generated)
+├── baseline_model.pkl        # Saved logistic regression (generated via --save)
+├── cnn_model.pt              # Saved temporal CNN (generated via --save)
+├── transformer_model.pt      # Saved transformer (generated via --save)
+└── videos/                   # Video dataset (download separately)
     ├── focused/
     └── distracted/
 ```
 
-**Note**: Large files (videos, model weights, generated datasets) are excluded from version control via `.gitignore`.
+Large files (videos, model weights, generated datasets) are excluded from version control via `.gitignore`.
 
 ---
 
@@ -96,7 +99,7 @@ Classification (focused / distracted)
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.11
 - pip
 - virtualenv (recommended)
 
@@ -126,7 +129,7 @@ Classification (focused / distracted)
 
 ## Dataset
 
-The dataset consists of labeled video recordings of individuals in focused and distracted states.
+Labeled video recordings of individuals in focused and distracted states.
 
 ### Download Dataset
 
@@ -137,129 +140,111 @@ The full dataset is hosted on Kaggle:
 ### Setup Instructions
 
 1. Download the dataset from Kaggle
-2. Extract the `videos.zip` file
+2. Extract `videos.zip`
 3. Place the `videos/` folder in the project root:
    ```
    videos/
-   ├── focused/       # Videos of focused individuals
-   └── distracted/    # Videos of distracted individuals
+   ├── focused/
+   └── distracted/
    ```
 
-**Important**: The dataset is NOT included in this repository due to size constraints. Videos, frames, and generated datasets are excluded via `.gitignore`.
+The dataset is NOT included in this repository due to size constraints.
 
 ---
 
 ## Usage
 
-### 1. Extract Features from Videos
+### 1. Extract Features
 
-Process all videos in the `videos/` directory to generate datasets:
+Process all videos in `videos/` to generate the three dataset variants:
 
 ```bash
 python frame_extraction.py
 ```
 
 **Outputs**:
-- `sequence_dataset.npz`: Temporal sequences (shape: N × 30 × 6)
-- `dataset.csv`: Aggregated features with labels
+- `sequence_dataset.npz` + `dataset.csv` (legacy 6-feature)
+- `sequence_dataset_iris.npz` + `dataset_iris.csv` (normalized iris)
+- `sequence_dataset_gaze.npz` + `dataset_gaze.csv` (face-frame gaze, 16 features)
 
-**What it does**:
-- Extracts 30 frames per video (3 fps over 10 seconds)
-- Detects facial landmarks using MediaPipe
-- Computes Eye Aspect Ratio (EAR) for both eyes
-- Calculates eye center positions
-- Stores both temporal sequences and aggregated statistics
+Already-processed videos are skipped on subsequent runs.
 
-### 2. Train Models
-
-#### Baseline Model (Logistic Regression on Aggregated Features)
+### 2. Evaluate Models (5-fold CV)
 
 ```bash
-python baseline_model.py
+python baseline_model.py          # logistic regression on aggregated CSV
+python time_model.py              # logistic regression on flattened sequences
+python cnn_time_model.py          # 1D temporal CNN
+python transformer_model.py       # transformer encoder
 ```
 
-Uses aggregated features from `dataset.csv` (mean, std, variance of EAR and eye positions). Provides a simple baseline for comparison using logistic regression.
+Each script reports mean ± std accuracy and macro F1 across 5 folds.
 
-#### Temporal Model (Flattened Sequence Features)
+### 3. Benchmark All Models
+
+Run every model against every dataset variant with multiple seeds:
 
 ```bash
-python time_model.py
+python benchmark.py
 ```
 
-Flattens the temporal dimension (30 × 6 = 180 features) and applies logistic regression. Captures frame-level information without temporal modeling.
+Reports mean ± std accuracy and macro F1 across `N_RUNS × N_FOLDS` (default 10 × 5).
 
-#### CNN Model (Temporal Convolutions)
+### 4. Save Trained Models for Real-time Use
 
 ```bash
-python cnn_time_model.py
+python baseline_model.py --save     # → baseline_model.pkl
+python cnn_time_model.py --save     # → cnn_model.pt
+python transformer_model.py --save  # → transformer_model.pt
 ```
 
-Uses 1D convolutional layers to learn temporal patterns across the 30-frame sequences. Detects local temporal dependencies.
+By default all three train on `dataset_gaze.csv` / `sequence_dataset_gaze.npz`. Pass `--csv` or `--npz` to override.
 
-#### Transformer Model (Self-Attention)
+### 5. Real-time Webcam Inference
 
 ```bash
-python transformer_model.py
+python realtime.py                  # use default camera
+python realtime.py --camera 1       # specify camera index
+python realtime.py --list-cameras   # list available camera indices
 ```
 
-Applies transformer architecture with positional encoding to model global temporal dependencies. Captures long-range patterns across the video.
+**Controls**:
+- `Q` — quit
+- `M` — toggle facial landmark overlay
+- `Tab` — cycle through loaded models
 
-### 3. Evaluation
+The viewer collects a 150-frame (10-second) sliding window at 15 fps, then predicts continuously. Predictions are smoothed with a 3-frame majority vote.
 
-All models use **5-fold stratified cross-validation** and report:
-- Mean accuracy ± standard deviation
-- Macro F1-score ± standard deviation
-- Confusion matrix (transformer only)
-- Per-class precision/recall (transformer only)
+### 6. Debug Visualization
+
+Annotate extracted frames with gaze arrows for inspection:
+
+```bash
+python annotate_frames.py                   # all videos in videos/
+python annotate_frames.py path/to/video.mp4 # single video
+```
+
+Output goes to `frames_annotated/`.
 
 ---
 
 ## Models
 
-### 1. Baseline Model (`baseline_model.py`)
+### 1. Baseline (`baseline_model.py`)
 
-**Architecture**: Logistic Regression
-**Input**: Aggregated features (8 dimensions)
-**Approach**: Statistical summary of entire video
+Logistic regression on aggregated per-video statistics (mean, std, variance of EAR / gaze / head / bbox features). Auto-detects which feature set the input CSV provides.
 
-Simple baseline that reduces each video to 8 aggregate statistics. Fast to train but loses temporal information.
+### 2. Flattened Sequence (`time_model.py`)
 
-### 2. Temporal Flattened Model (`time_model.py`)
-
-**Architecture**: Logistic Regression
-**Input**: Flattened temporal sequences (180 dimensions)
-**Approach**: Frame-level features without temporal modeling
-
-Preserves all frame-level information by flattening the time dimension, but doesn't explicitly model temporal dependencies.
+Logistic regression on the full temporal sequence flattened to a single vector. Preserves frame-level information but doesn't model temporal structure explicitly.
 
 ### 3. Temporal CNN (`cnn_time_model.py`)
 
-**Architecture**: 1D Convolutional Neural Network
-**Layers**:
-- Conv1D (6 → 16 channels, kernel size 3)
-- Conv1D (16 → 32 channels, kernel size 3)
-- AdaptiveAvgPool1d (global pooling)
-- Fully connected layer (32 → 2 classes)
+Two 1D convolutional layers (16 → 32 channels, kernel size 3) followed by adaptive average pooling and a linear classifier. Early stopping with patience 15.
 
-**Input**: Temporal sequences (30 × 6)
-**Approach**: Convolutional filters slide over time dimension to detect local patterns
+### 4. Transformer (`transformer_model.py`)
 
-Uses early stopping (patience=15) to prevent overfitting. Learns hierarchical temporal features through stacked convolutions.
-
-### 4. Transformer Classifier (`transformer_model.py`)
-
-**Architecture**: Transformer Encoder with Positional Encoding
-**Components**:
-- Input projection (6 → 64 dimensions)
-- Learnable positional encodings (30 timesteps)
-- 2-layer Transformer Encoder (4 attention heads)
-- Global mean pooling
-- Classification head (64 → 2 classes)
-
-**Input**: Temporal sequences (30 × 6)
-**Approach**: Self-attention mechanism captures global temporal dependencies
-
-Most sophisticated model. Uses attention to weigh importance of different timesteps dynamically. Includes dropout (0.1) for regularization.
+Linear projection (input → 64), learnable positional encoding, 2-layer transformer encoder (4 heads), mean pooling over time, linear classifier. Dropout 0.1.
 
 ---
 
@@ -267,63 +252,46 @@ Most sophisticated model. Uses attention to weigh importance of different timest
 
 ### Eye Aspect Ratio (EAR)
 
-The Eye Aspect Ratio is a geometric metric for measuring eye openness:
-
 ```
 EAR = (||p2 - p6|| + ||p3 - p5||) / (2 * ||p1 - p4||)
 ```
 
-Where p1-p6 are the 6 facial landmarks around each eye. Lower EAR values indicate closed or partially closed eyes, while higher values indicate wide-open eyes.
+Where p1–p6 are the 6 eyelid landmarks. Lower values indicate closed eyes.
 
-### Frame Extraction Parameters
+### Face-Frame Gaze
 
-- **Frame rate**: 3 fps
-- **Duration**: 10 seconds
-- **Total frames**: 30 per video
-- **Padding**: Sequences shorter than 30 frames are zero-padded
+For the gaze dataset, iris landmarks are projected into a 3D reference frame built from the face: x-axis between eye corners, y-axis toward the top of the head, z-axis as their cross product. The iris coordinates are normalized by inter-eye distance. This decouples gaze direction from head pose.
 
-### Model Training Configuration
+### Frame Extraction
 
-- **Cross-validation**: 5-fold stratified
-- **Normalization**: StandardScaler (per-feature z-score)
-- **Early stopping**: Patience = 15 epochs
-- **Optimizer**: Adam (learning rate = 1e-3)
-- **Loss function**: CrossEntropyLoss
-- **Device**: Auto-detects CUDA if available (CPU fallback)
+- **Frame rate**: 15 fps
+- **Duration**: 10 seconds (150 frames)
+- **Padding**: shorter sequences are zero-padded
+
+### Training
+
+- 5-fold stratified cross-validation
+- StandardScaler (per-feature z-score)
+- Adam, lr = 1e-3
+- CrossEntropyLoss
+- Auto-detects CUDA, CPU fallback
 
 ---
 
 ## Technologies Used
 
-- **Python 3.11**: Core programming language
-- **OpenCV**: Video processing and frame extraction
-- **MediaPipe**: Facial landmark detection (478-point face mesh)
-- **NumPy**: Numerical operations and array manipulation
-- **Pandas**: CSV data handling
-- **scikit-learn**: Traditional ML models, preprocessing, evaluation metrics
-- **PyTorch**: Deep learning framework for CNN and transformer models
-
----
-
-## Future Work
-
-### Potential Improvements
-
-- **Real-time Inference**: Optimize for live video stream processing with sliding window approach
-- **Enhanced Gaze Tracking**: Incorporate iris landmarks and head pose estimation for more accurate gaze direction
-- **Larger Dataset**: Expand beyond 96 samples to improve model generalization
-- **Data Augmentation**: Apply video transformations (rotation, brightness, noise) to increase training diversity
+- **Python 3.11**
+- **OpenCV** — video processing
+- **MediaPipe** — 478-point facial landmark detection
+- **NumPy / Pandas**
+- **scikit-learn** — classical models, preprocessing, metrics
+- **PyTorch** — CNN and transformer
 
 ---
 
 ## Performance Notes
 
-Model performance varies based on architecture:
-
-- **Baseline models** (~75-80% accuracy): Fast training, good starting point
-- **Deep learning models** (~80-95% accuracy): Require more data and hyperparameter tuning but can capture complex temporal patterns
-
-Results depend heavily on dataset quality, recording conditions, and class balance. The current dataset contains 96 videos (50 focused, 46 distracted).
+The current dataset contains 96 videos (50 focused, 46 distracted). Performance varies by architecture and feature set; `benchmark.py` is the entry point for head-to-head comparisons. Results depend on dataset size, class balance, and recording conditions.
 
 ---
 
