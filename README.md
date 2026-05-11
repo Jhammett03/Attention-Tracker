@@ -2,7 +2,7 @@
 
 A machine learning system that classifies human attention states (**focused** vs. **distracted**) using facial landmark analysis and temporal modeling.
 
-This senior project explores how visual attention signals — eye aspect ratio, gaze direction in the face frame, head orientation, and face bounding-box position — can be used to detect cognitive focus from video.
+This senior project explores how visual attention signals (eye aspect ratio, gaze direction in the face frame, head orientation, and face bounding-box position) can be used to detect cognitive focus from video.
 
 | Focused | Distracted |
 | :---: | :---: |
