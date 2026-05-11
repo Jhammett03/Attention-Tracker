@@ -4,6 +4,12 @@ A machine learning system that classifies human attention states (**focused** vs
 
 This senior project explores how visual attention signals — eye aspect ratio, gaze direction in the face frame, head orientation, and face bounding-box position — can be used to detect cognitive focus from video.
 
+| Focused | Distracted |
+| :---: | :---: |
+| ![focused with overlay](docs/overlay_focused.jpg) | ![distracted with overlay](docs/overlay_distracted.jpg) |
+
+Sample frames from the dataset with the feature overlay drawn by [annotate_frames.py](annotate_frames.py): cyan eye polylines, green iris centers, yellow face bounding box, magenta head z-axis. The same overlay is shown live in [realtime.py](realtime.py) (toggle with `M`).
+
 ---
 
 ## Overview
